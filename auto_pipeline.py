@@ -401,6 +401,8 @@ def run_pipeline(minutes=15, force_yt=None, dry_run=False, video_path=None):
         desc = f"{desc}\n\n{chapter_block}"
     if attribution not in desc:
         desc = f"{desc}\n\n{attribution}"
+    if "#sitar" not in desc.lower():
+        desc = f"{desc}\n\n#sitar #relaxingsitar #studymusic #sleepmusic #cinematicsitar"
     print(f"  • Title: {title}")
 
     if dry_run:
