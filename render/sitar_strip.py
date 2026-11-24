@@ -14,7 +14,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from config import FPS, H, W
 from render.scene import load_font, make_spark_sprite, palette
@@ -26,6 +26,14 @@ TARGET_H = 1020.0
 SITAR_X = 315.0
 SITAR_BOTTOM = 1048.0
 SITAR_Y = SITAR_BOTTOM - TARGET_H
+
+# Main playing strings: from the nut down the right side of the fretboard to
+# the bridge on the gourd. Coordinates are relative to the cut-out image.
+N_STRINGS = 7
+STRING_NUT_Y = 0.166
+STRING_BRIDGE_Y = 0.879
+STRING_NUT_X = (0.303, 0.360)
+STRING_BRIDGE_X = (0.793, 0.889)
 
 NOTE_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 
@@ -69,6 +77,7 @@ def _clip_add(roi, add):
 
 
 _BODY_CACHE = {}
+_STRINGS_CACHE = {}
 
 
 def _body_image():
@@ -81,6 +90,48 @@ def _body_image():
     src = src.resize((width, int(round(TARGET_H))), Image.Resampling.LANCZOS)
     _BODY_CACHE["body"] = src
     return src
+
+
+def _strings_layer():
+    """A crisp, photo-aligned set of strings that survives 1080p downscaling."""
+    cached = _STRINGS_CACHE.get("layer")
+    if cached is not None:
+        return cached
+    sitar = _body_image()
+    sw, sh = sitar.width, sitar.height
+    ss = 2
+    layer = Image.new("RGBA", (W * ss, H * ss), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    for i in range(N_STRINGS):
+        t = i / (N_STRINGS - 1)
+        nx = (SITAR_X + (STRING_NUT_X[0] + (STRING_NUT_X[1] - STRING_NUT_X[0]) * t) * sw) * ss
+        ny = (SITAR_Y + STRING_NUT_Y * sh) * ss
+        bx = (SITAR_X + (STRING_BRIDGE_X[0] + (STRING_BRIDGE_X[1] - STRING_BRIDGE_X[0]) * t) * sw) * ss
+        by = (SITAR_Y + STRING_BRIDGE_Y * sh) * ss
+        width = max(1, int(round((1.9 - 0.7 * t) * ss)))
+        draw.line((nx + ss, ny + ss, bx + ss, by + ss),
+                  fill=(8, 5, 3, 85), width=width + 2 * ss)
+        draw.line((nx, ny, bx, by), fill=(250, 236, 205, 255), width=width)
+    layer = layer.resize((W, H), Image.Resampling.LANCZOS)
+
+    # Dimmer at the nut, brighter where the strings cross the gourd, so the
+    # set reads as reflected light rather than a flat vector overlay.
+    gradient = Image.new("L", (W, H), 0)
+    grad_draw = ImageDraw.Draw(gradient)
+    y0 = int(SITAR_Y + STRING_NUT_Y * sh)
+    y1 = int(SITAR_Y + STRING_BRIDGE_Y * sh)
+    for y in range(y0, y1 + 1):
+        alpha = int(120 + 65 * (y - y0) / max(1, y1 - y0))
+        grad_draw.line((0, y, W, y), fill=alpha)
+    gradient.paste(0, (0, 0, W, y0))
+    gradient.paste(0, (0, y1, W, H))
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), gradient))
+
+    glow = layer.filter(ImageFilter.GaussianBlur(1.4))
+    glow.putalpha(glow.getchannel("A").point(lambda v: int(v * 0.28)))
+    layer = Image.alpha_composite(glow, layer)
+    _STRINGS_CACHE["layer"] = layer
+    return layer
 
 
 def make_sitar_base(palette_name):
@@ -104,6 +155,7 @@ def make_sitar_base(palette_name):
         fill=(0, 0, 0, 150))
     canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(24)))
     canvas.alpha_composite(Image.fromarray(arr, "RGBA"), (int(SITAR_X), int(SITAR_Y)))
+    canvas = Image.alpha_composite(canvas, _strings_layer())
     return np.array(canvas, dtype=np.uint8)
 
 
