@@ -121,6 +121,8 @@ _BANNED_CLAIM_TERMS = (
 def _title_is_safe(title, duration_mins, piece_title=None):
     if not title or len(title) > 100 or "sitar" not in title.lower():
         return False
+    if "\ufffd" in title:
+        return False
     lowered = title.lower()
     if piece_title and piece_title.lower() not in lowered:
         return False  # keep each upload identifiably distinct
@@ -168,8 +170,13 @@ def _sanitize_tags(tags, fallback):
     return clean[:15] or fallback
 
 
+def _clean_metadata(text):
+    """Replace characters that arrived corrupted from the model or console."""
+    return (text or "").replace("\ufffd", "-").replace("\u00b7", "-").strip()
+
+
 def _fallback_title(duration_mins, song_title):
-    suffix = " · Original Cinematic Sitar (1080p HD)"
+    suffix = " - Original Cinematic Sitar"
     prefixes = (
         f"{duration_mins} Min Relaxing Sitar & Piano | ",
         f"{duration_mins} Min Acoustic Sitar & Piano | ",
@@ -251,6 +258,8 @@ def generate_seo_metadata(song_title, chapters, duration_mins=15):
                 data = json.loads(raw_txt.strip())
                 title = (data.get("title") or "").strip()
                 desc = _sanitize_ai_description(data.get("description"), chapters_formatted)
+                title = _clean_metadata(title)
+                desc = _clean_metadata(desc)
                 if _title_is_safe(title, duration_mins, song_title) and desc:
                     return title, desc, _sanitize_tags(data.get("tags"), tags)
                 print("[AI NOTE] Metadata rejected by policy checks; using template.")
