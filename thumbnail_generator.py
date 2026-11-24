@@ -290,15 +290,13 @@ def create_sitarspheric_thumbnail(video_path, output_thumb_path, hook_dict=None,
     draw.text((tx + 2, ty + 2), brand_text, font=f_brand, fill=(0, 0, 0, 200))
     draw.text((tx, ty), brand_text, font=f_brand, fill=(255, 255, 255, 255))
 
-    vx = tx + int(draw.textlength(brand_text, font=f_brand)) + 10
-    vy = ly + (logo_size - 16) // 2
-    draw.ellipse((vx, vy, vx + 16, vy + 16), fill=(29, 155, 240, 255))
-    draw.line((vx + 4, vy + 8, vx + 7, vy + 11), fill=(255, 255, 255, 255), width=2)
-    draw.line((vx + 7, vy + 11, vx + 11, vy + 5), fill=(255, 255, 255, 255), width=2)
+    # No verification check: this channel is not verified, and a drawn badge
+    # would be misleading metadata.
+    vx = tx + int(draw.textlength(brand_text, font=f_brand)) + 14
 
     badge_text = hook.get("badge", "CINEMATIC SITAR")
     bw = int(draw.textlength(badge_text, font=f_badge)) + 24
-    bx = vx + 28
+    bx = vx
     draw.rounded_rectangle((bx, ly + 7, bx + bw, ly + 33), radius=13,
                            fill=(8, 10, 16, 210), outline=tuple(pal["accent"]) + (170,), width=1)
     draw.text((bx + 12, ly + 13), badge_text, font=f_badge,
