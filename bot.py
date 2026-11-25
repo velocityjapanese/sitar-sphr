@@ -97,13 +97,9 @@ def generate_longform_video(mood="relaxing", title=None, bars=16, tempo=None,
         "sections": sections,
         "chapters": comp["chapters"],
         "attribution": (
-            "Original composition. Sitar and piano samples: MuseScore_General "
-            "SoundFont by S. Christian Collins, MIT licence; piano samples: "
-            "Salamander Grand Piano V3 by Alexander Holm, CC BY 3.0 "
-            "(https://creativecommons.org/licenses/by/3.0/); audio rendered "
-            "from the samples with FluidSynth. Instrument photography: The "
-            "Metropolitan Museum of Art, Open Access (CC0), 'Sitar', late "
-            "19th century (89.4.1586)."
+            "Original composition. Piano samples: Salamander Grand Piano V3 by "
+            "Alexander Holm, CC BY 3.0 "
+            "(https://creativecommons.org/licenses/by/3.0/)."
         ),
     }
     meta_path = final_mp4.replace(".mp4", "_meta.json")
